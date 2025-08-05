@@ -34,6 +34,7 @@ public class LogAuditoria {
     @Column(name = "timestamp_acao", nullable = false, updatable = false)
     private OffsetDateTime timestampAcao;
 
+
     @PrePersist
     public void aoSalvar() {
         timestampAcao = OffsetDateTime.now();

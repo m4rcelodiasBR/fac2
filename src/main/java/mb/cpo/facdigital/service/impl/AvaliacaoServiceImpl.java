@@ -1,40 +1,236 @@
 package mb.cpo.facdigital.service.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
+import mb.cpo.facdigital.dto.avaliacao.AvaliacaoDetalheDTO;
+import mb.cpo.facdigital.dto.avaliacao.AvaliacaoResumoDTO;
+import mb.cpo.facdigital.dto.avaliacao.DadosAvaliadoDTO;
+import mb.cpo.facdigital.dto.avaliacao.DadosXmlDTO;
 import mb.cpo.facdigital.model.entity.Avaliacao;
+import mb.cpo.facdigital.model.entity.Avaliado;
 import mb.cpo.facdigital.model.entity.Usuario;
+import mb.cpo.facdigital.model.enums.StatusAvaliacao;
 import mb.cpo.facdigital.repository.AvaliacaoRepository;
+import mb.cpo.facdigital.repository.AvaliadoRepository;
 import mb.cpo.facdigital.repository.UsuarioRepository;
 import mb.cpo.facdigital.service.AvaliacaoService;
 import mb.cpo.facdigital.service.ProcessamentoArquivoService;
-import org.springframework.beans.factory.annotation.Autowired;
+import mb.cpo.facdigital.util.UtilitarioCriptografia;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
+@RequiredArgsConstructor
 public class AvaliacaoServiceImpl implements AvaliacaoService {
 
-    @Autowired
-    private AvaliacaoRepository avaliacaoRepository;
-
-    @Autowired
-    private UsuarioRepository usuarioRepository;
-
-    @Autowired
-    private ProcessamentoArquivoService processamentoArquivoService;
+    private final AvaliacaoRepository avaliacaoRepository;
+    private final AvaliadoRepository avaliadoRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final ProcessamentoArquivoService processamentoArquivoService;
+    private final UtilitarioCriptografia utilitarioCriptografia;
+    private final ObjectMapper objectMapper;
 
     @Override
-    @Transactional // Garante que todas as operações de banco sejam feitas em uma única transação
+    @Transactional
     public Avaliacao criarNovaAvaliacaoAPartirDeXml(MultipartFile arquivo, String nipAvaliador) {
-        // 1. Busca o usuário avaliador no banco de dados.
+        // 1. Busca o usuário que está fazendo a ação
         Usuario avaliador = usuarioRepository.findByNip(nipAvaliador)
                 .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado: " + nipAvaliador));
 
-        // 2. Delega o processamento do arquivo para o serviço especializado.
-        Avaliacao novaAvaliacao = processamentoArquivoService.processarArquivoXml(arquivo, avaliador);
+        // 2. O serviço de processamento agora só extrai os dados para um DTO
+        DadosXmlDTO dadosXml = processamentoArquivoService.processarArquivoXml(arquivo);
 
-        // 3. Salva a nova avaliação e seus avaliados (em cascata) no banco de dados.
+        // 3. A validação de segurança é feita aqui, na camada de negócio
+        if (!dadosXml.nipAvaliador().equals(avaliador.getNip())) {
+            throw new SecurityException("O NIP do arquivo XML não corresponde ao do avaliador autenticado.");
+        }
+
+        // 4. Mapeia os dados do DTO para a entidade principal 'Avaliacao'
+        Avaliacao novaAvaliacao = new Avaliacao();
+        novaAvaliacao.setAvaliador(avaliador);
+        novaAvaliacao.setStatus(StatusAvaliacao.INICIADA);
+        novaAvaliacao.setEventoCodigo(dadosXml.eventoCodigo());
+        novaAvaliacao.setEventoDataDescritiva(dadosXml.eventoDataDescritiva());
+        novaAvaliacao.setEventoDescricao("Evento " + dadosXml.eventoCodigo()); // Pode ser melhorado
+        novaAvaliacao.setSituacaoPromocao(dadosXml.situacaoPromocao());
+        novaAvaliacao.setNumeroAditamento(dadosXml.numeroAditamento());
+        novaAvaliacao.setDataLimiteRemessa(LocalDate.parse(dadosXml.dataLimite(), DateTimeFormatter.ISO_LOCAL_DATE));
+
+        // 5. Itera sobre os avaliados do XML, cifra os dados e cria as entidades 'Avaliado'
+        List<Avaliado> listaAvaliados = dadosXml.avaliados().stream()
+                .map(avaliadoXmlDto -> {
+                    try {
+                        // Cria o objeto com os dados em claro para ser serializado
+                        DadosAvaliadoDTO dadosEmClaro = new DadosAvaliadoDTO(
+                                avaliadoXmlDto.nip(), avaliadoXmlDto.nome(), avaliadoXmlDto.nomeDeGuerra(),
+                                avaliadoXmlDto.sequencia(), avaliadoXmlDto.especialidade(), avaliadoXmlDto.antiguidade(),
+                                avaliadoXmlDto.posto(), avaliadoXmlDto.quadro(), avaliadoXmlDto.omSigla(),
+                                avaliadoXmlDto.fotoBase64(), "" // Grau inicial vazio
+                        );
+
+                        // Serializa para JSON, cifra o JSON e cria a entidade final
+                        String dadosJson = objectMapper.writeValueAsString(dadosEmClaro);
+                        String dadosCifrados = utilitarioCriptografia.cifrar(dadosJson);
+
+                        Avaliado entidadeFinal = new Avaliado();
+                        entidadeFinal.setAvaliacao(novaAvaliacao);
+                        entidadeFinal.setDadosCifrados(dadosCifrados);
+                        return entidadeFinal;
+
+                    } catch (JsonProcessingException e) {
+                        throw new RuntimeException("Erro ao serializar dados do avaliado", e);
+                    }
+                })
+                .collect(Collectors.toList());
+
+        novaAvaliacao.setAvaliados(listaAvaliados);
+
+        // 6. Salva a avaliação completa no banco de dados
         return avaliacaoRepository.save(novaAvaliacao);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AvaliacaoResumoDTO> listarAvaliacoesPorAvaliador(String nipAvaliador) {
+        Usuario avaliador = usuarioRepository.findByNip(nipAvaliador)
+                .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado: " + nipAvaliador));
+
+        List<Avaliacao> avaliacoes = avaliacaoRepository.findByAvaliadorIdOrderByDataCriacaoDesc(avaliador.getId());
+
+        return avaliacoes.stream()
+                .map(avaliacao -> new AvaliacaoResumoDTO(
+                        avaliacao.getId(),
+                        avaliacao.getEventoDescricao(),
+                        avaliacao.getEventoPosto(),
+                        avaliacao.getDataLimiteRemessa(),
+                        avaliacao.getDataEnvio(),
+                        avaliacao.getStatus()))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public AvaliacaoDetalheDTO buscarAvaliacaoDetalhada(Long idAvaliacao, String nipAvaliador) {
+        Avaliacao avaliacao = buscarEValidarAcesso(idAvaliacao, nipAvaliador);
+        return mapearParaDetalheDTO(avaliacao);
+    }
+
+    @Override
+    @Transactional
+    public void atualizarGrau(Long idAvaliacao, Long idAvaliado, String grau, String nipAvaliador) {
+        Avaliacao avaliacao = buscarEValidarAcesso(idAvaliacao, nipAvaliador);
+
+        if (avaliacao.getStatus() == StatusAvaliacao.CONCLUIDA) {
+            throw new IllegalStateException("Esta avaliação já foi concluída e não pode ser alterada.");
+        }
+
+        Avaliado avaliado = avaliadoRepository.findById(idAvaliado)
+                .orElseThrow(() -> new RuntimeException("Avaliado não encontrado com ID: " + idAvaliado));
+
+        if (!avaliado.getAvaliacao().getId().equals(idAvaliacao)) {
+            throw new AccessDeniedException("Acesso negado. O avaliado não pertence a esta avaliação.");
+        }
+
+        try {
+            String dadosJson = utilitarioCriptografia.decifrar(avaliado.getDadosCifrados());
+            DadosAvaliadoDTO dadosAtuais = objectMapper.readValue(dadosJson, DadosAvaliadoDTO.class);
+
+            DadosAvaliadoDTO dadosAtualizados = new DadosAvaliadoDTO(
+                    dadosAtuais.nip(), dadosAtuais.nome(), dadosAtuais.nomeDeGuerra(), dadosAtuais.sequencia(),
+                    dadosAtuais.especialidade(), dadosAtuais.antiguidade(), dadosAtuais.posto(), dadosAtuais.quadro(),
+                    dadosAtuais.omSigla(), dadosAtuais.fotoBase64(), grau
+            );
+
+            String novoJsonCifrado = utilitarioCriptografia.cifrar(objectMapper.writeValueAsString(dadosAtualizados));
+            avaliado.setDadosCifrados(novoJsonCifrado);
+
+            if (avaliacao.getStatus() == StatusAvaliacao.INICIADA) {
+                avaliacao.setStatus(StatusAvaliacao.EM_PROGRESSO);
+            }
+
+            avaliadoRepository.save(avaliado);
+            avaliacaoRepository.save(avaliacao);
+
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Erro ao processar dados do avaliado", e);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void enviarAvaliacao(Long idAvaliacao, String nipAvaliador) {
+        Avaliacao avaliacao = buscarEValidarAcesso(idAvaliacao, nipAvaliador);
+
+        boolean todosPreenchidos = avaliacao.getAvaliados().stream()
+                .allMatch(a -> {
+                    try {
+                        String dadosJson = utilitarioCriptografia.decifrar(a.getDadosCifrados());
+                        DadosAvaliadoDTO dados = objectMapper.readValue(dadosJson, DadosAvaliadoDTO.class);
+                        return dados.grau() != null && !dados.grau().isBlank();
+                    } catch (JsonProcessingException e) {
+                        throw new RuntimeException("Erro ao verificar grau do avaliado", e);
+                    }
+                });
+
+        if (!todosPreenchidos) {
+            throw new IllegalStateException("Não é possível enviar a avaliação. Todos os graus devem ser preenchidos.");
+        }
+
+        avaliacao.setStatus(StatusAvaliacao.CONCLUIDA);
+        avaliacao.setDataEnvio(OffsetDateTime.now());
+        avaliacaoRepository.save(avaliacao);
+    }
+
+    private Avaliacao buscarEValidarAcesso(Long idAvaliacao, String nipAvaliador) {
+        Avaliacao avaliacao = avaliacaoRepository.findById(idAvaliacao)
+                .orElseThrow(() -> new RuntimeException("Avaliação não encontrada com ID: " + idAvaliacao));
+
+        if (!avaliacao.getAvaliador().getNip().equals(nipAvaliador)) {
+            throw new AccessDeniedException("Acesso negado. Você não é o avaliador desta FAC.");
+        }
+        return avaliacao;
+    }
+
+    private AvaliacaoDetalheDTO mapearParaDetalheDTO(Avaliacao avaliacao) {
+        AvaliacaoDetalheDTO.AvaliadorDTO avaliadorDTO = new AvaliacaoDetalheDTO.AvaliadorDTO(
+                avaliacao.getAvaliador().getNome(),
+                avaliacao.getAvaliador().getPostoAvaliador(),
+                avaliacao.getAvaliador().getQuadroAvaliador(),
+                avaliacao.getAvaliador().getFotoAvaliadorBase64()
+        );
+
+        List<AvaliacaoDetalheDTO.AvaliadoDTO> avaliadosDTO = avaliacao.getAvaliados().stream()
+                .map(avaliado -> {
+                    try {
+                        String dadosJson = utilitarioCriptografia.decifrar(avaliado.getDadosCifrados());
+                        DadosAvaliadoDTO dados = objectMapper.readValue(dadosJson, DadosAvaliadoDTO.class);
+                        return new AvaliacaoDetalheDTO.AvaliadoDTO(
+                                avaliado.getId(), dados.nip(), dados.nome(), dados.nomeDeGuerra(),
+                                dados.antiguidade(), dados.omSigla(), dados.fotoBase64(), dados.grau()
+                        );
+                    } catch (JsonProcessingException e) {
+                        throw new RuntimeException("Erro ao decifrar dados do avaliado para DTO", e);
+                    }
+                })
+                .collect(Collectors.toList());
+
+        return new AvaliacaoDetalheDTO(
+                avaliacao.getId(),
+                avaliacao.getEventoDescricao(),
+                avaliacao.getDataLimiteRemessa(),
+                avaliacao.getStatus(),
+                avaliadorDTO,
+                avaliadosDTO
+        );
     }
 }

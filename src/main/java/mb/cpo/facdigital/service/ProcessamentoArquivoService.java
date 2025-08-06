@@ -1,8 +1,6 @@
 package mb.cpo.facdigital.service;
 
 import mb.cpo.facdigital.dto.avaliacao.DadosXmlDTO;
-import mb.cpo.facdigital.model.entity.Avaliacao;
-import mb.cpo.facdigital.model.entity.Usuario;
 import org.springframework.web.multipart.MultipartFile;
 
 public interface ProcessamentoArquivoService {

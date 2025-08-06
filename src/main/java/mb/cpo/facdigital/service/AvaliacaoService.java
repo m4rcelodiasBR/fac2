@@ -2,7 +2,6 @@ package mb.cpo.facdigital.service;
 
 import mb.cpo.facdigital.dto.avaliacao.AvaliacaoDetalheDTO;
 import mb.cpo.facdigital.dto.avaliacao.AvaliacaoResumoDTO;
-import mb.cpo.facdigital.dto.avaliacao.DadosXmlDTO;
 import mb.cpo.facdigital.model.entity.Avaliacao;
 import org.springframework.web.multipart.MultipartFile;
 

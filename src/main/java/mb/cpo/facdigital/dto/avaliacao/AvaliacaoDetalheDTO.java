@@ -28,6 +28,6 @@ public record AvaliacaoDetalheDTO(
             String antiguidade,
             String omSigla,
             String fotoBase64,
-            String grau // O grau virá descriptografado para a tela
+            String grau
     ) {}
 }

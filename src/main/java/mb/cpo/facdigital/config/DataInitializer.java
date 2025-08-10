@@ -21,10 +21,9 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        // Define o NIP do usuário administrador
+
         final String adminNip = "99999999";
 
-        // Verifica se o usuário já existe no banco para evitar duplicatas
         if (usuarioRepository.findByNip(adminNip).isEmpty()) {
 
             System.out.println(">>> Criando usuário Administrador padrão...");
@@ -45,6 +44,8 @@ public class DataInitializer implements CommandLineRunner {
             System.out.println(">>> Usuário Administrador criado com sucesso!");
             System.out.println(">>> NIP: " + adminNip);
             System.out.println(">>> Senha: marinha");
+        } else {
+            System.out.println(">>> Usuário Administrador já exite no sistema!");
         }
     }
 }

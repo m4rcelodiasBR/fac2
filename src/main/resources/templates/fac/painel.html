@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/mainLayout :: layout(~{::title}, ~{::section}, ~{})}">
+<head>
+    <title>Painel do Avaliador - FACDigital</title>
+</head>
+<body>
+<section>
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Painel do Avaliador</h1>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">Iniciar Nova Avaliação</div>
+        <div class="card-body">
+            <h5 class="card-title">Carregar arquivo FAC (XML)</h5>
+            <p class="card-text">Selecione o arquivo XML oficial para iniciar um novo processo de avaliação.</p>
+            <form th:action="@{/fac/carregar-xml}" method="post" enctype="multipart/form-data">
+                <div class="input-group">
+                    <input type="file" class="form-control" id="arquivo" name="arquivo" accept=".xml" required>
+                    <button class="btn btn-primary" type="submit">Carregar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div th:if="${mensagemSucesso}" class="alert alert-success" role="alert" th:text="${mensagemSucesso}"></div>
+    <div th:if="${mensagemErro}" class="alert alert-danger" role="alert" th:text="${mensagemErro}"></div>
+
+    <h2 class="h4 mt-4">Minhas Avaliações</h2>
+    <div class="table-responsive">
+        <table class="table table-striped table-hover" th:if="${!avaliacoes.isEmpty()}">
+            <thead class="table-light">
+            <tr>
+                <th scope="col">#ID</th>
+                <th scope="col">Evento</th>
+                <th scope="col">Data Limite</th>
+                <th scope="col">Data de Envio</th>
+                <th scope="col">Status</th>
+                <th scope="col">Ação</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="avaliacao : ${avaliacoes}">
+                <td th:text="${avaliacao.id}">1</td>
+                <td th:text="${avaliacao.eventoDescricao} + ' (' + ${avaliacao.eventoPosto} + ')'">QAE-CMG</td>
+                <td th:text="${#temporals.format(avaliacao.dataLimiteRemessa, 'dd/MM/yyyy')}">30/11/2025</td>
+                <td th:text="${avaliacao.dataEnvio != null ? #temporals.format(avaliacao.dataEnvio, 'dd/MM/yyyy HH:mm') : '-'}">-</td>
+                <td>
+                        <span th:switch="${avaliacao.status.name()}" class="badge"
+                              th:classappend="${avaliacao.status.name() == 'INICIADA' ? 'bg-secondary' :
+                                               avaliacao.status.name() == 'EM_PROGRESSO' ? 'bg-warning text-dark' :
+                                               avaliacao.status.name() == 'CONCLUIDA' ? 'bg-success' : 'bg-info text-dark'}">
+                            <span th:text="${#strings.replace(avaliacao.status.name(), '_', ' ')}"></span>
+                        </span>
+                </td>
+                <td>
+                    <a th:href="@{/fac/avaliacao/{id}(id=${avaliacao.id})}" class="btn btn-sm btn-primary"
+                       th:text="${(avaliacao.status.name() == 'CONCLUIDA' || avaliacao.status.name() == 'RETIFICADA') ? 'Visualizar' : 'Continuar'}">
+                    </a>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <div th:unless="${!avaliacoes.isEmpty()}" class="alert alert-info mt-3" role="alert">
+            Você ainda não possui nenhuma avaliação carregada no sistema.
+        </div>
+    </div>
+</section>
+</body>
+</html>

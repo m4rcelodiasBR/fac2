@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/mainLayout :: layout(~{::title}, ~{::section}, ~{})}">
+<head>
+    <title>Acesso ao Sistema - FACDigital</title>
+</head>
+<body>
+<section>
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        <img th:src="@{/images/logo_mb.svg}" alt="Logo MB" style="height: 80px;"/>
+                        <h1 class="h3 mt-3 mb-3 fw-normal">Portal FACDigital</h1>
+                        <p>Acesso ao sistema de avaliação</p>
+                    </div>
+
+                    <!-- Mensagem de erro (será usada na Aula 4) -->
+                    <div th:if="${param.error}" class="alert alert-danger" role="alert">
+                        NIP ou senha inválidos.
+                    </div>
+                    <div th:if="${param.logout}" class="alert alert-success" role="alert">
+                        Você saiu do sistema com sucesso.
+                    </div>
+
+                    <!-- O action DEVE ser "/login" e o method DEVE ser "post" -->
+                    <form th:action="@{/login}" method="post">
+                        <div class="form-floating mb-3">
+                            <!-- O name DEVE ser "username" para o NIP -->
+                            <input type="text" class="form-control" id="username" name="username" placeholder="NIP" required autofocus>
+                            <label for="username">NIP</label>
+                        </div>
+                        <div class="form-floating mb-3">
+                            <!-- O name DEVE ser "password" para a senha -->
+                            <input type="password" class="form-control" id="password" name="password" placeholder="Senha" required>
+                            <label for="password">Senha</label>
+                        </div>
+
+                        <button class="w-100 btn btn-lg btn-primary" type="submit">Entrar</button>
+                    </form>
+
+                    <div class="text-center mt-3">
+                        <a href="#">Esqueceu sua senha?</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+</body>
+</html>

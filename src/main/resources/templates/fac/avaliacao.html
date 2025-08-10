@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/mainLayout :: layout(~{::title}, ~{::section}, ~{::scripts})}">
+<head>
+    <title th:text="'FAC #' + ${avaliacao.id} + ' - FACDigital'">Tela de Avaliação</title>
+</head>
+<body>
+<section>
+    <!-- Cabeçalho da Página -->
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2" th:text="${avaliacao.eventoDescricao}">Detalhes da Avaliação</h1>
+        <a th:href="@{/templates/fac/painel}" class="btn btn-secondary">Voltar ao Painel</a>
+    </div>
+
+    <!-- Informações do Avaliador e Evento -->
+    <div class="card mb-4">
+        <div class="card-header">
+            Informações Gerais
+        </div>
+        <div class="card-body row">
+            <p class="col-md-6"><strong>Avaliador:</strong> <span
+                    th:text="${avaliacao.avaliador.posto} + ' ' + ${avaliacao.avaliador.nome}"></span></p>
+            <p class="col-md-6"><strong>Data Limite para Remessa:</strong> <span class="text-danger fw-bold"
+                                                                                 th:text="${#temporals.format(avaliacao.dataLimiteRemessa, 'dd/MM/yyyy')}"></span>
+            </p>
+        </div>
+    </div>
+
+    <!-- Tracker Visual de Status -->
+    <div class="d-flex justify-content-around align-items-center p-3 bg-light rounded mb-4">
+        <div class="text-center"
+             th:classappend="${avaliacao.status.name() == 'INICIADA' ? 'fw-bold text-primary' : ''}">1. Iniciada
+        </div>
+        <div class="flex-grow-1 mx-3">
+            <hr>
+        </div>
+        <div class="text-center"
+             th:classappend="${avaliacao.status.name() == 'EM_PROGRESSO' ? 'fw-bold text-primary' : ''}">2. Em Progresso
+        </div>
+        <div class="flex-grow-1 mx-3">
+            <hr>
+        </div>
+        <div class="text-center"
+             th:classappend="${avaliacao.status.name() == 'CONCLUIDA' ? 'fw-bold text-primary' : ''}">3. Concluída
+        </div>
+    </div>
+
+    <!-- Área Principal: Tabela e Foto -->
+    <div class="row">
+        <!-- Coluna da Tabela de Avaliados -->
+        <div class="col-lg-9">
+            <div class="table-responsive">
+                <table class="table table-hover" id="tabela-avaliados">
+                    <thead class="table-light">
+                    <tr>
+                        <th>ANT</th>
+                        <th>NIP</th>
+                        <th>Nome do Oficial</th>
+                        <th>OM</th>
+                        <th class="text-center">Grau</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="avaliado : ${avaliacao.avaliados}"
+                        th:data-foto="${avaliado.fotoBase64}"
+                        th:data-nome="${avaliado.nomeDeGuerra}"
+                        th:data-nip="${avaliado.nip}">
+
+                        <td th:text="${avaliado.antiguidade}"></td>
+                        <td th:text="${avaliado.nip}"></td>
+                        <td th:text="${avaliado.nome}"></td>
+                        <td th:text="${avaliado.omSigla}"></td>
+                        <td class="text-center">
+                            <input type="text" class="form-control form-control-sm text-center" style="width: 70px;"
+                                   th:value="${avaliado.grau}" placeholder=""/>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Coluna da Foto e Detalhes -->
+        <div class="col-lg-3">
+            <div class="card sticky-top" style="top: 20px;">
+                <div class="card-header text-center">Oficial Selecionado</div>
+                <div class="card-body text-center">
+                    <img id="foto-avaliado" src="" alt="Foto do Avaliado" class="img-fluid rounded border mb-3"
+                         style="width: 160px; height: 208px; object-fit: cover;"/>
+                    <h5 id="nome-guerra-avaliado" class="card-title"></h5>
+                    <p id="nip-avaliado" class="card-text"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botão de Envio -->
+    <div class="mt-4 text-end">
+        <button class="btn btn-success btn-lg">Enviar Avaliação</button>
+    </div>
+</section>
+<th:block th:fragment="scripts">
+    <script th:src="@{/js/fac.js}"></script>
+</th:block>
+</body>
+</html>

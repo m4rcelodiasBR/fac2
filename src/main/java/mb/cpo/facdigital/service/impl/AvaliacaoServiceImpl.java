@@ -1,3 +1,8 @@
+/**
+ * Implementação do serviço de negócio para Avaliações (FAC).
+ * Refatorado para usar o modelo de dados completo com Enums.
+ * @author Marcelo Dias
+ */
 package mb.cpo.facdigital.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -10,7 +15,7 @@ import mb.cpo.facdigital.dto.avaliacao.DadosXmlDTO;
 import mb.cpo.facdigital.model.entity.Avaliacao;
 import mb.cpo.facdigital.model.entity.Avaliado;
 import mb.cpo.facdigital.model.entity.Usuario;
-import mb.cpo.facdigital.model.enums.StatusAvaliacao;
+import mb.cpo.facdigital.model.enums.*;
 import mb.cpo.facdigital.repository.AvaliacaoRepository;
 import mb.cpo.facdigital.repository.AvaliadoRepository;
 import mb.cpo.facdigital.repository.UsuarioRepository;
@@ -41,7 +46,6 @@ public class AvaliacaoServiceImpl implements AvaliacaoService {
     private final ProcessamentoArquivoService processamentoArquivoService;
     private final UtilitarioCriptografia utilitarioCriptografia;
     private final ObjectMapper objectMapper;
-    private final EventoService eventoService;
 
     @Override
     @Transactional
@@ -55,11 +59,19 @@ public class AvaliacaoServiceImpl implements AvaliacaoService {
             throw new SecurityException("O NIP do arquivo XML não corresponde ao do avaliador autenticado.");
         }
 
-        Evento evento = eventoService.buscarOuCriarEvento(dadosXml);
+        avaliador.setPostoAvaliador(Posto.valueOf(dadosXml.postoAvaliador()));
+        avaliador.setQuadroAvaliador(CorpoQuadro.valueOf(dadosXml.quadroAvaliador()));
+        usuarioRepository.save(avaliador);
+
+        EventoTipo tipoDeEvento = EventoTipo.porCodigo(dadosXml.eventoCodigo());
 
         Avaliacao novaAvaliacao = new Avaliacao();
         novaAvaliacao.setAvaliador(avaliador);
-        novaAvaliacao.setEvento(evento); // USA A RELAÇÃO
+        novaAvaliacao.setEventoTipo(tipoDeEvento); // Usa o Enum
+        novaAvaliacao.setEventoDataDescritiva(dadosXml.eventoDataDescritiva());
+        // TODO: Mapear Posto e CorpoQuadro do Evento a partir do XML
+        // novaAvaliacao.setEventoPosto(...);
+        // novaAvaliacao.setEventoQuadro(...);
         novaAvaliacao.setStatus(StatusAvaliacao.INICIADA);
         novaAvaliacao.setSituacaoPromocao(dadosXml.situacaoPromocao());
         novaAvaliacao.setNumeroAditamento(dadosXml.numeroAditamento());
@@ -72,7 +84,7 @@ public class AvaliacaoServiceImpl implements AvaliacaoService {
                                 avaliadoXmlDto.nip(), avaliadoXmlDto.nome(), avaliadoXmlDto.nomeDeGuerra(),
                                 avaliadoXmlDto.sequencia(), avaliadoXmlDto.especialidade(), avaliadoXmlDto.antiguidade(),
                                 avaliadoXmlDto.posto(), avaliadoXmlDto.quadro(), avaliadoXmlDto.omSigla(),
-                                avaliadoXmlDto.fotoBase64(), "" // Grau inicial vazio
+                                avaliadoXmlDto.fotoBase64(), ""
                         );
                         String dadosJson = objectMapper.writeValueAsString(dadosEmClaro);
                         String dadosCifrados = utilitarioCriptografia.cifrar(dadosJson);
@@ -110,8 +122,8 @@ public class AvaliacaoServiceImpl implements AvaliacaoService {
         return avaliacoes.stream()
                 .map(avaliacao -> new AvaliacaoResumoDTO(
                         avaliacao.getId(),
-                        avaliacao.getEventoDescricao(),
-                        avaliacao.getEventoPosto(),
+                        avaliacao.getEventoTipo().getDescricao(),
+                        avaliacao.getEventoPosto().getDescricao(),
                         avaliacao.getDataLimiteRemessa(),
                         avaliacao.getDataEnvio(),
                         avaliacao.getStatus()))
@@ -204,8 +216,8 @@ public class AvaliacaoServiceImpl implements AvaliacaoService {
     private AvaliacaoDetalheDTO mapearParaDetalheDTO(Avaliacao avaliacao) {
         AvaliacaoDetalheDTO.AvaliadorDTO avaliadorDTO = new AvaliacaoDetalheDTO.AvaliadorDTO(
                 avaliacao.getAvaliador().getNome(),
-                avaliacao.getAvaliador().getPostoAvaliador(),
-                avaliacao.getAvaliador().getQuadroAvaliador(),
+                avaliacao.getAvaliador().getPostoAvaliador().getDescricao(),
+                avaliacao.getAvaliador().getQuadroAvaliador().getDescricao(),
                 avaliacao.getAvaliador().getFotoAvaliadorBase64()
         );
 
@@ -226,7 +238,7 @@ public class AvaliacaoServiceImpl implements AvaliacaoService {
 
         return new AvaliacaoDetalheDTO(
                 avaliacao.getId(),
-                avaliacao.getEventoDescricao(),
+                avaliacao.getEventoTipo().getDescricao(),
                 avaliacao.getDataLimiteRemessa(),
                 avaliacao.getStatus(),
                 avaliadorDTO,

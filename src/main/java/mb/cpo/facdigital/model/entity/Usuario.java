@@ -7,8 +7,6 @@ import mb.cpo.facdigital.model.enums.CorpoQuadro;
 import mb.cpo.facdigital.model.enums.PerfilUsuario;
 import mb.cpo.facdigital.model.enums.Posto;
 
-import java.time.OffsetDateTime;
-
 /**
  * Entidade que representa a tabela 'usuarios'.
  * Armazena os dados de Avaliadores e Administradores.

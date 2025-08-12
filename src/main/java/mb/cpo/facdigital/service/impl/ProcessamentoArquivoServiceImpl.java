@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.InputStream;
+
 @Service
 public class ProcessamentoArquivoServiceImpl implements ProcessamentoArquivoService {
 
@@ -14,11 +16,11 @@ public class ProcessamentoArquivoServiceImpl implements ProcessamentoArquivoServ
     private UtilitarioParserXML utilitarioParserXML;
 
     @Override
-    public DadosXmlDTO processarArquivoXml(MultipartFile arquivo) {
+    public DadosXmlDTO processarArquivoXml(InputStream arquivo) {
         try {
             return utilitarioParserXML.extrairDadosDoXml(arquivo);
         } catch (Exception e) {
-            throw new RuntimeException("Erro ao processar o arquivo XML: " + e.getMessage(), e);
+            throw new RuntimeException("Falha ao analisar o arquivo XML.", e);
         }
     }
 }

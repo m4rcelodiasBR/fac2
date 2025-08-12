@@ -1,20 +1,38 @@
 <!DOCTYPE html>
 <html lang="pt-br" xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout/mainLayout :: layout(~{::title}, ~{::section}, ~{})}">
+
 <head>
-    <title>Bem-vindo(as) à FACDigital</title>
+    <title>Bem-vindo ao FACDigital</title>
 </head>
-<body>
+
 <section>
     <div class="p-5 mb-4 bg-light rounded-3">
         <div class="container-fluid py-5">
-            <h1 class="display-5 fw-bold">Bem-vindo ao Portal FACDigital</h1>
-            <p class="col-md-8 fs-4">
-                Ambiente seguro para a gestão da Folha de Avaliação Complementar.
-            </p>
-            <a class="btn btn-primary btn-lg" href="/login">Acessar Sistema</a>
+            <h1 class="display-5 fw-bold">Portal FACDigital</h1>
+            <p class="col-md-8 fs-4">Sistema de Folha de Avaliação Complementar. Para iniciar, carregue o arquivo XML oficial fornecido.</p>
+        </div>
+    </div>
+
+    <div th:if="${mensagemSucesso}" class="alert alert-success" role="alert" th:text="${mensagemSucesso}"></div>
+    <div th:if="${mensagemErro}" class="alert alert-danger" role="alert" th:text="${mensagemErro}"></div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3>Iniciar Avaliação</h3>
+        </div>
+        <div class="card-body">
+            <form method="post" th:action="@{/fac/carregar-xml}" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label for="arquivoXml" class="form-label">Selecione o arquivo FAC (.xml)</label>
+                    <input class="form-control form-control-lg" type="file" id="arquivoXml" name="arquivoXml" required accept=".xml">
+                </div>
+                <button type="submit" class="btn btn-primary btn-lg">Carregar e Iniciar</button>
+            </form>
+        </div>
+        <div class="card-footer text-end">
+            <a th:href="@{/login}">Acesso Administrativo</a>
         </div>
     </div>
 </section>
-</body>
 </html>

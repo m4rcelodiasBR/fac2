@@ -2,7 +2,10 @@ package mb.cpo.facdigital.model.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import mb.cpo.facdigital.model.entity.base.EntidadeBase;
+import mb.cpo.facdigital.model.enums.CorpoQuadro;
 import mb.cpo.facdigital.model.enums.PerfilUsuario;
+import mb.cpo.facdigital.model.enums.Posto;
 
 import java.time.OffsetDateTime;
 
@@ -13,11 +16,7 @@ import java.time.OffsetDateTime;
 @Data
 @Entity
 @Table(name = "usuarios")
-public class Usuario {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class Usuario extends EntidadeBase {
 
     @Column(nullable = false, unique = true, length = 8)
     private String nip;
@@ -32,27 +31,19 @@ public class Usuario {
     private String senhaHash;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 50)
+    @Column(nullable = false)
     private PerfilUsuario perfil;
 
-    @Column(name = "posto_avaliador", length = 100)
-    private String postoAvaliador;
-
-    @Column(name = "quadro_avaliador", length = 100)
-    private String quadroAvaliador;
-
-    @Lob // Large Object - para textos longos como Base64
-    @Column(name = "foto_avaliador_base64")
-    private String fotoAvaliadorBase64;
-
     @Column(nullable = false)
-    private boolean ativo = true;
+    private boolean ativo;
 
-    @Column(name = "data_criacao", nullable = false, updatable = false)
-    private OffsetDateTime dataCriacao;
+    @Enumerated(EnumType.STRING)
+    private Posto postoAvaliador;
 
-    @PrePersist
-    public void aoSalvar() {
-        dataCriacao = OffsetDateTime.now();
-    }
+    @Enumerated(EnumType.STRING)
+    private CorpoQuadro quadroAvaliador;
+
+    @Lob
+    @Column(columnDefinition = "TEXT")
+    private String fotoAvaliadorBase64;
 }

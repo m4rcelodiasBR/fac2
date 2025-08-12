@@ -1,7 +1,7 @@
 package mb.cpo.facdigital.service;
 
 import mb.cpo.facdigital.dto.avaliacao.DadosXmlDTO;
-import org.springframework.web.multipart.MultipartFile;
+import java.io.InputStream;
 
 public interface ProcessamentoArquivoService {
     /**
@@ -9,5 +9,5 @@ public interface ProcessamentoArquivoService {
      * @param arquivo O arquivo XML enviado.
      * @return um DTO contendo os dados brutos extraídos do XML.
      */
-    DadosXmlDTO processarArquivoXml(MultipartFile arquivo);
+    DadosXmlDTO processarArquivoXml(InputStream arquivo);
 }

@@ -23,6 +23,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
@@ -39,64 +41,62 @@ public class AvaliacaoServiceImpl implements AvaliacaoService {
     private final ProcessamentoArquivoService processamentoArquivoService;
     private final UtilitarioCriptografia utilitarioCriptografia;
     private final ObjectMapper objectMapper;
+    private final EventoService eventoService;
 
     @Override
     @Transactional
-    public Avaliacao criarNovaAvaliacaoAPartirDeXml(MultipartFile arquivo, String nipAvaliador) {
-        // 1. Busca o usuário que está fazendo a ação
-        Usuario avaliador = usuarioRepository.findByNip(nipAvaliador)
-                .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado: " + nipAvaliador));
+    public void criarNovaAvaliacaoParaUsuarioExistente(InputStream arquivoStream, String nipAvaliadorLogado) {
+        Usuario avaliador = usuarioRepository.findByNip(nipAvaliadorLogado)
+                .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado: " + nipAvaliadorLogado));
 
-        // 2. O serviço de processamento agora só extrai os dados para um DTO
-        DadosXmlDTO dadosXml = processamentoArquivoService.processarArquivoXml(arquivo);
+        DadosXmlDTO dadosXml = processamentoArquivoService.processarArquivoXml(arquivoStream);
 
-        // 3. A validação de segurança é feita aqui, na camada de negócio
         if (!dadosXml.nipAvaliador().equals(avaliador.getNip())) {
             throw new SecurityException("O NIP do arquivo XML não corresponde ao do avaliador autenticado.");
         }
 
-        // 4. Mapeia os dados do DTO para a entidade principal 'Avaliacao'
+        Evento evento = eventoService.buscarOuCriarEvento(dadosXml);
+
         Avaliacao novaAvaliacao = new Avaliacao();
         novaAvaliacao.setAvaliador(avaliador);
+        novaAvaliacao.setEvento(evento); // USA A RELAÇÃO
         novaAvaliacao.setStatus(StatusAvaliacao.INICIADA);
-        novaAvaliacao.setEventoCodigo(dadosXml.eventoCodigo());
-        novaAvaliacao.setEventoDataDescritiva(dadosXml.eventoDataDescritiva());
-        novaAvaliacao.setEventoDescricao("Evento " + dadosXml.eventoCodigo()); // Pode ser melhorado
         novaAvaliacao.setSituacaoPromocao(dadosXml.situacaoPromocao());
         novaAvaliacao.setNumeroAditamento(dadosXml.numeroAditamento());
         novaAvaliacao.setDataLimiteRemessa(LocalDate.parse(dadosXml.dataLimite(), DateTimeFormatter.ISO_LOCAL_DATE));
 
-        // 5. Itera sobre os avaliados do XML, cifra os dados e cria as entidades 'Avaliado'
         List<Avaliado> listaAvaliados = dadosXml.avaliados().stream()
                 .map(avaliadoXmlDto -> {
                     try {
-                        // Cria o objeto com os dados em claro para ser serializado
                         DadosAvaliadoDTO dadosEmClaro = new DadosAvaliadoDTO(
                                 avaliadoXmlDto.nip(), avaliadoXmlDto.nome(), avaliadoXmlDto.nomeDeGuerra(),
                                 avaliadoXmlDto.sequencia(), avaliadoXmlDto.especialidade(), avaliadoXmlDto.antiguidade(),
                                 avaliadoXmlDto.posto(), avaliadoXmlDto.quadro(), avaliadoXmlDto.omSigla(),
                                 avaliadoXmlDto.fotoBase64(), "" // Grau inicial vazio
                         );
-
-                        // Serializa para JSON, cifra o JSON e cria a entidade final
                         String dadosJson = objectMapper.writeValueAsString(dadosEmClaro);
                         String dadosCifrados = utilitarioCriptografia.cifrar(dadosJson);
-
                         Avaliado entidadeFinal = new Avaliado();
                         entidadeFinal.setAvaliacao(novaAvaliacao);
                         entidadeFinal.setDadosCifrados(dadosCifrados);
                         return entidadeFinal;
-
                     } catch (JsonProcessingException e) {
-                        throw new RuntimeException("Erro ao serializar dados do avaliado", e);
+                        throw new RuntimeException("Erro ao serializar dados do avaliado.", e);
                     }
                 })
                 .collect(Collectors.toList());
 
         novaAvaliacao.setAvaliados(listaAvaliados);
+        avaliacaoRepository.save(novaAvaliacao);
+    }
 
-        // 6. Salva a avaliação completa no banco de dados
-        return avaliacaoRepository.save(novaAvaliacao);
+    @Override
+    public DadosXmlDTO processarXmlParaPrimeiroAcesso(MultipartFile arquivo) {
+        try {
+            return processamentoArquivoService.processarArquivoXml(arquivo.getInputStream());
+        } catch (IOException e) {
+            throw new RuntimeException();
+        }
     }
 
     @Override

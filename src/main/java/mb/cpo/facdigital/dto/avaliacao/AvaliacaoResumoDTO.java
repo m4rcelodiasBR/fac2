@@ -7,6 +7,7 @@ import java.time.OffsetDateTime;
 
 public record AvaliacaoResumoDTO(
         Long id,
+        String eventoSigla,
         String eventoDescricao,
         String eventoPosto,
         LocalDate dataLimiteRemessa,

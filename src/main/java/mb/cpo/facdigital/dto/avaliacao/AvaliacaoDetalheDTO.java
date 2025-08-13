@@ -8,6 +8,10 @@ import java.util.List;
 public record AvaliacaoDetalheDTO(
         Long id,
         String eventoDescricao,
+        String eventoSigla,
+        String eventoPosto,
+        String eventoQuadro,
+        String situacaoPromocao,
         LocalDate dataLimiteRemessa,
         StatusAvaliacao status,
         AvaliadorDTO avaliador,

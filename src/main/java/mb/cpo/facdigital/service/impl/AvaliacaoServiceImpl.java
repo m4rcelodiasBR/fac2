@@ -122,6 +122,7 @@ public class AvaliacaoServiceImpl implements AvaliacaoService {
         return avaliacoes.stream()
                 .map(avaliacao -> new AvaliacaoResumoDTO(
                         avaliacao.getId(),
+                        avaliacao.getEventoTipo().getSigla(),
                         avaliacao.getEventoTipo().getDescricao(),
                         avaliacao.getEventoPosto().getDescricao(),
                         avaliacao.getDataLimiteRemessa(),
@@ -238,7 +239,11 @@ public class AvaliacaoServiceImpl implements AvaliacaoService {
 
         return new AvaliacaoDetalheDTO(
                 avaliacao.getId(),
+                avaliacao.getEventoTipo().getSigla(),
                 avaliacao.getEventoTipo().getDescricao(),
+                avaliacao.getEventoPosto() != null ? avaliacao.getEventoPosto().getSigla() : "",
+                avaliacao.getEventoQuadro() != null ? avaliacao.getEventoQuadro().name() : "",
+                avaliacao.getSituacaoPromocao(),
                 avaliacao.getDataLimiteRemessa(),
                 avaliacao.getStatus(),
                 avaliadorDTO,

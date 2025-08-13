@@ -34,6 +34,7 @@
             <tr>
                 <th scope="col">#ID</th>
                 <th scope="col">Evento</th>
+                <th scope="col">Evento Descrição</th>
                 <th scope="col">Data Limite</th>
                 <th scope="col">Data de Envio</th>
                 <th scope="col">Status</th>
@@ -43,6 +44,7 @@
             <tbody>
             <tr th:each="avaliacao : ${avaliacoes}">
                 <td th:text="${avaliacao.id}">1</td>
+                <td th:text="${avaliacao.eventoSigla}">EC</td>
                 <td th:text="${avaliacao.eventoDescricao} + ' (' + ${avaliacao.eventoPosto} + ')'">QAE-CMG</td>
                 <td th:text="${#temporals.format(avaliacao.dataLimiteRemessa, 'dd/MM/yyyy')}">30/11/2025</td>
                 <td th:text="${avaliacao.dataEnvio != null ? #temporals.format(avaliacao.dataEnvio, 'dd/MM/yyyy HH:mm') : '-'}">-</td>

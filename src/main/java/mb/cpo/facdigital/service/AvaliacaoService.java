@@ -31,8 +31,7 @@ public interface AvaliacaoService {
 
     AvaliacaoDetalheDTO buscarAvaliacaoDetalhada(Long idAvaliacao, String nipAvaliador);
 
-    void atualizarGrau(Long idAvaliacao, Long idAvaliado, String grau, String nipAvaliador);
-
     void enviarAvaliacao(Long idAvaliacao, String nipAvaliador);
 
+    void atualizarGrau(Long avaliacaoId, Long avaliadoId, String grau, String name);
 }

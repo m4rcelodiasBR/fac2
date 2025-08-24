@@ -32,7 +32,7 @@ public class SegurancaConfig {
                         // 4. Protege o painel do administrador
                         .requestMatchers("/dashboard/**").hasRole("ADMIN")
                         // 5. Protege o restante da área do avaliador
-                        .requestMatchers("/fac/**").hasRole("AVALIADOR")
+                        .requestMatchers("/fac/**").hasAnyRole("AVALIADOR", "ADMIN")
                         // 6. Exige autenticação para qualquer outra requisição
                         .anyRequest().authenticated()
                 )

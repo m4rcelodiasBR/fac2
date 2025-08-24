@@ -2,7 +2,6 @@
  * Script para a interatividade da página de avaliação da FAC.
  * @author Marcelo Dias
  */
-
 $(function () {
     const token = $("meta[name='_csrf']").attr("content");
     const header = $("meta[name='_csrf_header']").attr("content");
@@ -15,7 +14,6 @@ $(function () {
 
 $(document).ready(function () {
 
-    // Função para atualizar o painel da foto
     function selecionarAvaliado(linha) {
         $('#tabela-avaliados tbody tr').removeClass('table-active');
         $(linha).addClass('table-active');
@@ -29,37 +27,39 @@ $(document).ready(function () {
         $('#nip-avaliado').text('NIP: ' + nip);
     }
 
-    // Adiciona o evento de clique nas linhas da tabela
     $('#tabela-avaliados tbody tr').on('click', function () {
         selecionarAvaliado(this);
     });
 
-    // Simula clique na primeira linha para carregar a primeira foto
     const primeiraLinha = $('#tabela-avaliados tbody tr:first');
     if (primeiraLinha.length) {
         primeiraLinha.trigger('click');
     }
 
-    // "Auto-save" do grau quando o valor do campo muda
     $('#tabela-avaliados').on('change', 'input.grau-input', function() {
         const input = $(this);
         const avaliacaoId = input.data('avaliacao-id');
         const avaliadoId = input.data('avaliado-id');
         const grau = input.val();
+        const csrfToken = $("meta[name='_csrf']").attr("content");
+        const csrfHeader = $("meta[name='_csrf_header']").attr("content");
 
-        input.css('border-color', '#ffc107'); // Amarelo (Salvando)
+        input.css('border-color', '#ffc107');
 
         $.ajax({
             url: `/fac/avaliacao/${avaliacaoId}/avaliado/${avaliadoId}`,
             type: 'POST',
             data: { grau: grau },
+            beforeSend: function(xhr) {
+                xhr.setRequestHeader(csrfHeader, csrfToken);
+            },
             success: function(response) {
-                input.css('border-color', '#198754'); // Verde (Sucesso)
+                input.css('border-color', '#198754');
                 setTimeout(() => input.css('border-color', ''), 2000);
             },
             error: function(err) {
-                input.css('border-color', '#dc3545'); // Vermelho (Erro)
-                alert('Erro ao salvar o grau. Verifique sua conexão e tente novamente.');
+                input.css('border-color', '#dc3545');
+                alert('Erro ao salvar o grau. Verifique sua conexão e o console do navegador (F12).');
             }
         });
     });

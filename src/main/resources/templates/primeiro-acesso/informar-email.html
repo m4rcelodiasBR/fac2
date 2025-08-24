@@ -16,12 +16,16 @@
 
                     <form method="POST" th:action="@{/primeiro-acesso/enviar-token}">
                         <div class="mb-3">
-                            <label class="form-label">NIP</label>
-                            <input type="text" class="form-control" th:value="${dadosXml.nipAvaliador}" disabled />
+                            <label for="nip" class="form-label">NIP</label>
+                            <input id="nip" type="text" class="form-control" th:value="${dadosXml.nipAvaliador}" disabled />
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Nome</label>
-                            <input type="text" class="form-control" th:value="${dadosXml.nomeAvaliador}" disabled />
+                            <label for="nome" class="form-label">Nome</label>
+                            <input id="nome" type="text" class="form-control" th:value="${dadosXml.nomeAvaliador}" disabled />
+                        </div>
+                        <div class="mb-3">
+                            <label for="postoQuadro" class="form-label">Posto/Quadro</label>
+                            <input id="postoQuadro" type="text" class="form-control" th:value="${dadosXml.postoAvaliador} + ' (' + ${dadosXml.quadroAvaliador} + ')'" disabled />
                         </div>
                         <div class="mb-3">
                             <label for="email" class="form-label">E-mail Funcional</label>

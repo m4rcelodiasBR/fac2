@@ -8,20 +8,30 @@
 <section>
     <!-- Cabeçalho da Página -->
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h1 class="h2" th:text="${avaliacao.eventoDescricao}">Detalhes da Avaliação</h1>
-        <a th:href="@{/fac/painel}" class="btn btn-secondary">Voltar ao Painel</a>
+        <h1 class="h2" th:text="${'FAC #' + avaliacao.id + ' - ' + avaliacao.eventoDescricao}">Detalhes da FAC</h1>
     </div>
 
     <!-- Informações do Avaliador e Evento -->
     <div class="card mb-4">
-        <div class="card-header">
-            Informações Gerais
+        <div class="card-header fw-bold">
+            EVENTO: <span class="text-primary" th:text="${avaliacao.eventoSigla}">EC</span>
         </div>
-        <div class="card-body row">
-            <p class="col-md-6"><strong>Avaliador:</strong> <span
-                    th:text="${avaliacao.avaliador.posto} + ' ' + ${avaliacao.avaliador.nome}"></span></p>
-            <p class="col-md-6"><strong>Data Limite para Remessa:</strong> <span class="text-danger fw-bold"
-                                                                                 th:text="${#temporals.format(avaliacao.dataLimiteRemessa, 'dd/MM/yyyy')}"></span>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <p class="mb-1"><strong>Descrição:</strong> <span th:text="${avaliacao.eventoDescricao}">Escala de Comando</span></p>
+                    <p class="mb-1"><strong>Situação:</strong> <span th:text="${avaliacao.situacaoPromocao}">Previsão de promoção...</span></p>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <p class="mb-1"><strong>Data Limite para Remessa:</strong></p>
+                    <p class="fw-bold text-danger fs-5" th:text="${#temporals.format(avaliacao.dataLimiteRemessa, 'dd/MM/yyyy')}"></p>
+                </div>
+            </div>
+            <hr>
+            <p class="mb-1"><strong>AVALIADOR:</strong>
+                <span th:text="${avaliacao.avaliador.posto.sigla}"></span>
+                <span th:text="${avaliacao.avaliador.quadro}"></span>
+                <span th:text="${avaliacao.avaliador.nome}"></span>
             </p>
         </div>
     </div>
@@ -73,8 +83,7 @@
                         <td class="text-center">
                             <input type="text" class="form-control form-control-sm text-center grau-input" style="width: 70px;"
                                    th:value="${avaliado.grau}"
-                                   th:data-avaliacao-id="${avaliacao.id}"
-                                   th:data-avaliado-id="${avaliado.id}"
+                                   th:data-avaliacao-id="${avaliacao.id}" th:data-avaliado-id="${avaliado.id}"
                                    placeholder=""/>
                         </td>
                     </tr>
@@ -100,7 +109,7 @@
     <!-- Botão de Envio -->
     <div class="mt-4 text-end">
         <form th:action="@{/fac/avaliacao/{id}/enviar(id=${avaliacao.id})}" method="POST">
-            <button type="submit" class="btn btn-success btn-lg">Enviar Avaliação</button>
+            <button type="submit" id="btn-enviar-avaliacao" class="btn btn-success btn-lg">Enviar Avaliação</button>
         </form>
     </div>
 </section>

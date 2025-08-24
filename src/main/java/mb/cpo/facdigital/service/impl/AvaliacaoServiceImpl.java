@@ -124,7 +124,7 @@ public class AvaliacaoServiceImpl implements AvaliacaoService {
                         avaliacao.getId(),
                         avaliacao.getEventoTipo().getSigla(),
                         avaliacao.getEventoTipo().getDescricao(),
-                        avaliacao.getEventoPosto().getDescricao(),
+                        avaliacao.getEventoPosto().getSigla(),
                         avaliacao.getDataLimiteRemessa(),
                         avaliacao.getDataEnvio(),
                         avaliacao.getStatus()))

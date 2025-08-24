@@ -77,17 +77,15 @@ public class FacController {
      * @param avaliacaoId O ID da avaliação pai.
      * @param avaliadoId O ID do avaliado a ser atualizado.
      * @param grau O novo grau a ser salvo.
+     * @param principal O objeto de autenticação do usuário logado.
      * @return Retorna um status HTTP 200 (OK) em caso de sucesso ou 400 (Bad Request) em caso de erro.
-     */
-    /**
-     * Atualiza o grau de um único avaliado (chamada via AJAX).
      */
     @PostMapping("/avaliacao/{avaliacaoId}/avaliado/{avaliadoId}")
     @ResponseBody
     public ResponseEntity<Void> atualizarGrau(@PathVariable Long avaliacaoId,
                                               @PathVariable Long avaliadoId,
                                               @RequestParam String grau,
-                                              Principal principal) { // Adicionado Principal para segurança
+                                              Principal principal) {
         try {
             avaliacaoService.atualizarGrau(avaliacaoId, avaliadoId, grau, principal.getName());
             return ResponseEntity.ok().build();
@@ -103,7 +101,7 @@ public class FacController {
      * @return Redireciona o usuário de volta para o painel.
      */
     @PostMapping("/avaliacao/{id}/enviar")
-    public String enviarAvaliacao(@PathVariable Long id,
+    public String enviarAvaliacao(@PathVariable("id") Long id,
                                   Principal principal,
                                   RedirectAttributes redirectAttributes) {
         try {
